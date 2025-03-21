@@ -1,13 +1,15 @@
 package org.utn.ba.clase1.services;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.utn.ba.clase1.dtos.input.TurnoIntputDTO;
 import org.utn.ba.clase1.dtos.output.TurnoOutputDTO;
+import org.utn.ba.clase1.exceptions.MascotaNotFoundException;
 import org.utn.ba.clase1.exceptions.TurnoNotFoundException;
 import org.utn.ba.clase1.mappers.TurnoMapper;
+import org.utn.ba.clase1.models.entities.Mascota;
 import org.utn.ba.clase1.models.entities.Turno;
+import org.utn.ba.clase1.models.repositories.MascotaRepository;
 import org.utn.ba.clase1.models.repositories.TurnoRepository;
 
 import java.util.List;
@@ -18,9 +20,11 @@ public class TurnosService implements ITurnosService{
 
   @Autowired
   private TurnoRepository turnoRepository;
+  @Autowired
+  private MascotaRepository mascotaRepository;
   @Override
   public List<TurnoOutputDTO> obtenerTodos() {
-    return this.turnoRepository.findAll().stream().map(TurnoMapper::crearAPartirDe).toList();
+    return this.turnoRepository.findAll().stream().map(TurnoMapper::crearTurnoAPartirDe).toList();
   }
 
   @Override
@@ -28,7 +32,7 @@ public class TurnosService implements ITurnosService{
     Optional<Turno> turno = this.turnoRepository.findById(id);
 
     if(turno.isPresent()){
-      return TurnoMapper.crearAPartirDe(turno.get());
+      return TurnoMapper.crearTurnoAPartirDe(turno.get());
     } else{
       throw new TurnoNotFoundException("Turno no encontrado");
     }
@@ -37,8 +41,14 @@ public class TurnosService implements ITurnosService{
 
   @Override
   public Long crearTurno(TurnoIntputDTO turno) {
-    Turno nuevoTurno = new ObjectMapper().convertValue(turno, Turno.class);
+    Mascota mascota = mascotaRepository.findById(turno.getMascotaId())
+        .orElseThrow(() -> new MascotaNotFoundException("Mascota no encontrada"));
+
+    Turno nuevoTurno = new Turno();
+    nuevoTurno.setMascota(mascota);
+
     this.turnoRepository.save(nuevoTurno);
+
     return nuevoTurno.getId();
   }
 
@@ -49,13 +59,14 @@ public class TurnosService implements ITurnosService{
 
   @Override
   public TurnoOutputDTO modificarTurno(TurnoIntputDTO turno, Long id) {
-    Turno turnoAModificar = new ObjectMapper().convertValue(turno, Turno.class);
+    Turno turnoExistente = turnoRepository.findById(id)
+        .orElseThrow(() -> new MascotaNotFoundException("Mascota no encontrada"));
 
-    if(turnoRepository.existsById(id)){
-      this.turnoRepository.save(turnoAModificar);
-      return TurnoMapper.crearAPartirDe(turnoAModificar);
-    }
+    turnoExistente.setMascota(mascotaRepository.findById(turno.getMascotaId())
+        .orElseThrow(() -> new MascotaNotFoundException("Mascota no encontrada")));
 
-    return null;
+    Turno turnoActualizado = turnoRepository.save(turnoExistente);
+
+    return TurnoMapper.crearTurnoAPartirDe(turnoActualizado);
   }
 }

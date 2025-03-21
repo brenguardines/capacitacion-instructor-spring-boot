@@ -4,6 +4,5 @@ import lombok.Data;
 
 @Data
 public class TurnoIntputDTO {
-  private String razaPaciente;
-  private String nombrePaciente;
+  private Long mascotaId;
 }
